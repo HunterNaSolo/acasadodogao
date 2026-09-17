@@ -1,0 +1,33 @@
+name: Publicar versão Windows
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+      - name: Compilar GestaoDelivery.exe
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w -H=windowsgui -X main.AppVersion=$VERSION" -o GestaoDelivery.exe .
+      - name: Criar ou atualizar Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" GestaoDelivery.exe --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" GestaoDelivery.exe --generate-notes --title "Gestão Delivery $GITHUB_REF_NAME"
+          fi

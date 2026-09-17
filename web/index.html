@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Gestão Delivery</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-mark">GD</div>
+      <div><strong id="brandName">Gestão Delivery</strong><small>Caixa • Estoque • Vendas</small></div>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-btn active" data-tab="dashboard">⌂ <span>Visão geral</span></button>
+      <button class="nav-btn" data-tab="sales">◉ <span>Vendas</span></button>
+      <button class="nav-btn" data-tab="products">☰ <span>Cardápio</span></button>
+      <button class="nav-btn" data-tab="stock">▦ <span>Estoque</span><em id="navLowStock" class="nav-badge hidden">0</em></button>
+      <button class="nav-btn" data-tab="cash">$ <span>Caixa</span></button>
+      <button class="nav-btn" data-tab="settings">⚙ <span>Configurações</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="version-box"><span>Versão</span><strong id="versionText">...</strong></div>
+      <button id="quitBtn" class="quit-btn">Sair do aplicativo</button>
+    </div>
+  </aside>
+
+  <main class="main-area">
+    <header class="topbar">
+      <div><h1 id="pageTitle">Visão geral</h1><p id="pageSubtitle">Acompanhe caixa, estoque e lucro do seu delivery.</p></div>
+      <div class="status-wrap"><span id="todayText"></span><span id="saveStatus" class="status-dot">Dados salvos</span></div>
+    </header>
+
+    <div id="toast" class="toast hidden"></div>
+
+    <section class="page active" id="page-dashboard">
+      <div class="kpi-grid">
+        <article class="kpi"><span>Faturamento</span><strong id="kpiRevenue">R$ 0,00</strong><small>Vendas + receitas extras</small></article>
+        <article class="kpi"><span>Custo consumido</span><strong id="kpiCogs">R$ 0,00</strong><small>Ingredientes usados nas vendas</small></article>
+        <article class="kpi"><span>Despesas operacionais</span><strong id="kpiExpenses">R$ 0,00</strong><small>Taxas e gastos, sem compras de estoque</small></article>
+        <article class="kpi profit-card"><span>Lucro operacional</span><strong id="kpiProfit">R$ 0,00</strong><small id="kpiMargin">Margem 0%</small></article>
+      </div>
+      <div class="two-col">
+        <article class="panel">
+          <div class="panel-head"><div><h2>Estoque baixo</h2><p>Itens que chegaram ao mínimo definido por você.</p></div><span id="lowStockCount" class="badge">0 itens</span></div>
+          <div id="lowStockList" class="list"></div>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h2>Indicadores</h2><p>Resumo rápido da operação.</p></div></div>
+          <div class="metric-list">
+            <div><span>Pedidos</span><strong id="metricOrders">0</strong></div>
+            <div><span>Ticket médio</span><strong id="metricTicket">R$ 0,00</strong></div>
+            <div><span>Valor em estoque</span><strong id="metricStockValue">R$ 0,00</strong></div>
+            <div><span>Saldo de caixa</span><strong id="metricCashBalance">R$ 0,00</strong></div>
+          </div>
+        </article>
+      </div>
+      <article class="panel">
+        <div class="panel-head"><div><h2>Últimas vendas</h2><p>Resultado de cada pedido.</p></div><button class="ghost-btn" data-go="sales">Nova venda</button></div>
+        <div class="table-wrap"><table><thead><tr><th>Data</th><th>Pedido</th><th>Receita</th><th>Custo</th><th>Taxas</th><th>Resultado</th></tr></thead><tbody id="dashboardSales"></tbody></table></div>
+      </article>
+    </section>
+
+    <section class="page" id="page-sales">
+      <div class="two-col sales-layout">
+        <article class="panel">
+          <div class="panel-head"><div><h2>Nova venda</h2><p>Personalize o pedido. Tudo mexe no estoque automaticamente.</p></div></div>
+          <div class="form-grid">
+            <label>Lanche<select id="saleProduct"></select></label>
+            <label>Quantidade<input id="saleQty" type="number" min="1" value="1" /></label>
+            <label>Pagamento<select id="salePayment"><option>Pix</option><option>Dinheiro</option><option>Cartão</option><option>iFood</option><option>99</option></select></label>
+            <label>Taxa da plataforma (R$)<input id="saleFee" type="number" min="0" step="0.01" value="0" /></label>
+          </div>
+          <div class="subsection"><div class="sub-head"><h3>Retirar ingredientes</h3><small>O que for retirado não será descontado do estoque.</small></div><div id="removeIngredients" class="check-grid"></div></div>
+          <div class="subsection"><div class="sub-head inline"><div><h3>Acréscimos</h3><small>Defina quantidade usada e valor cobrado. Também baixa o estoque.</small></div><button id="addExtraBtn" type="button" class="ghost-btn">+ Acréscimo</button></div><div id="extraList" class="extra-list"></div></div>
+        </article>
+        <article class="panel sale-summary sticky-panel">
+          <div class="panel-head"><div><h2>Resumo do pedido</h2><p>Confira antes de finalizar.</p></div></div>
+          <div class="summary-lines">
+            <div><span>Venda</span><strong id="previewRevenue">R$ 0,00</strong></div>
+            <div><span>Custo dos ingredientes</span><strong id="previewCogs">R$ 0,00</strong></div>
+            <div><span>Taxas</span><strong id="previewFee">R$ 0,00</strong></div>
+            <div class="total"><span>Resultado estimado</span><strong id="previewResult">R$ 0,00</strong></div>
+          </div>
+          <button id="finishSaleBtn" type="button" class="primary-btn full">Finalizar venda e baixar estoque</button>
+        </article>
+      </div>
+      <article class="panel"><div class="panel-head"><div><h2>Histórico de vendas</h2><p>Receita, custo e margem de cada venda.</p></div></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Produto</th><th>Pagamento</th><th>Receita</th><th>Custo</th><th>Taxa</th><th>Resultado</th></tr></thead><tbody id="salesTable"></tbody></table></div></article>
+    </section>
+
+    <section class="page" id="page-products">
+      <article class="panel">
+        <div class="panel-head"><div><h2>Novo lanche</h2><p>Monte a ficha técnica para o sistema calcular custo e baixa de estoque.</p></div></div>
+        <form id="productForm">
+          <div class="form-grid"><label>Nome do lanche<input id="productName" required placeholder="Ex.: Dogão Paulista" /></label><label>Preço de venda (R$)<input id="productPrice" required type="number" min="0" step="0.01" placeholder="28,00" /></label></div>
+          <div class="subsection"><div class="sub-head inline"><div><h3>Ingredientes</h3><small>Quantidade usada para 1 lanche.</small></div><button type="button" id="addRecipeBtn" class="ghost-btn">+ Ingrediente</button></div><div id="recipeList" class="recipe-list"></div></div>
+          <button class="primary-btn">Salvar lanche</button>
+        </form>
+      </article>
+      <div id="productCards" class="card-grid"></div>
+    </section>
+
+    <section class="page" id="page-stock">
+      <div class="two-col">
+        <article class="panel"><div class="panel-head"><div><h2>Novo ingrediente</h2><p>Defina quantidade, custo e estoque mínimo.</p></div></div><form id="stockForm"><div class="form-grid"><label>Ingrediente<input id="stockName" required /></label><label>Quantidade atual<input id="stockQty" required type="number" min="0" step="0.001" /></label><label>Unidade<select id="stockUnit"><option>un</option><option>kg</option><option>g</option><option>litro</option><option>ml</option><option>pacote</option><option>caixa</option></select></label><label>Estoque mínimo<input id="stockMin" required type="number" min="0" step="0.001" /></label><label>Custo por unidade (R$)<input id="stockCost" required type="number" min="0" step="0.01" /></label></div><button class="primary-btn">Cadastrar ingrediente</button></form></article>
+        <article class="panel"><div class="panel-head"><div><h2>Repor estoque</h2><p>A compra aumenta o estoque e entra no fluxo de caixa.</p></div></div><form id="restockForm"><div class="form-grid single"><label>Ingrediente<select id="restockItem"></select></label><label>Quantidade comprada<input id="restockQty" required type="number" min="0.001" step="0.001" /></label><label>Valor total pago (R$)<input id="restockTotal" required type="number" min="0" step="0.01" /></label></div><button class="primary-btn">Registrar compra</button></form></article>
+      </div>
+      <article class="panel"><div class="panel-head"><div><h2>Estoque atual</h2><p>Edite o estoque mínimo direto na tabela. O alerta usa esse valor.</p></div></div><div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Atual</th><th>Mínimo</th><th>Custo un.</th><th>Valor</th><th>Status</th><th>Ajuste</th></tr></thead><tbody id="stockTable"></tbody></table></div></article>
+    </section>
+
+    <section class="page" id="page-cash">
+      <div class="two-col">
+        <article class="panel"><div class="panel-head"><div><h2>Lançamento manual</h2><p>Registre despesas e receitas fora das vendas.</p></div></div><form id="cashForm"><div class="form-grid single"><label>Tipo<select id="cashType"><option value="expense">Despesa</option><option value="income">Receita extra</option></select></label><label>Categoria<select id="cashCategory"><option>Gás</option><option>Embalagens</option><option>Entrega</option><option>Energia</option><option>Taxas</option><option>Marketing</option><option>Outros</option></select></label><label>Descrição<input id="cashDescription" required /></label><label>Valor (R$)<input id="cashValue" required type="number" min="0.01" step="0.01" /></label></div><button class="primary-btn">Registrar lançamento</button></form></article>
+        <article class="panel"><div class="panel-head"><div><h2>Financeiro</h2><p>Lucro e caixa são mostrados separadamente.</p></div></div><div class="metric-list"><div><span>Receitas</span><strong id="cashRevenue">R$ 0,00</strong></div><div><span>Lucro operacional</span><strong id="cashProfit">R$ 0,00</strong></div><div><span>Compras de estoque</span><strong id="cashPurchases">R$ 0,00</strong></div><div><span>Saldo de caixa</span><strong id="cashBalance">R$ 0,00</strong></div></div></article>
+      </div>
+      <article class="panel"><div class="panel-head"><div><h2>Movimentações</h2><p>Reposições de estoque aparecem automaticamente.</p></div></div><div class="table-wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead><tbody id="cashTable"></tbody></table></div></article>
+    </section>
+
+    <section class="page" id="page-settings">
+      <div class="two-col">
+        <article class="panel">
+          <div class="panel-head"><div><h2>Dados da loja</h2><p>Personalize o nome exibido no sistema.</p></div></div>
+          <form id="settingsForm" class="form-grid single">
+            <label>Nome da loja<input id="businessName" placeholder="Meu Delivery" /></label>
+            <label>Usuário/organização do GitHub<input id="githubOwner" placeholder="seu-usuario" /></label>
+            <label>Repositório do GitHub<input id="githubRepo" placeholder="gestao-delivery" /></label>
+            <button class="primary-btn">Salvar configurações</button>
+          </form>
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h2>Atualizações</h2><p>Busca a versão mais recente nos Releases do GitHub.</p></div></div>
+          <div class="update-box"><strong id="updateMessage">Configure seu GitHub e verifique atualizações.</strong><small id="updateHint">Se houver uma versão nova com o arquivo GestaoDelivery.exe, o app pode substituir o executável sem tocar nos dados.</small><div class="button-row"><button id="checkUpdateBtn" type="button" class="primary-btn">Verificar atualização</button><button id="installUpdateBtn" type="button" class="ghost-btn hidden">Baixar, instalar e reiniciar</button></div></div>
+        </article>
+      </div>
+      <div class="two-col">
+        <article class="panel"><div class="panel-head"><div><h2>Backup</h2><p>Os dados ficam fora do executável e recebem cópias automáticas.</p></div></div><div class="data-box"><small>Arquivo de dados</small><code id="dataPathText">...</code><div class="button-row"><button id="openDataFolderBtn" type="button" class="ghost-btn">Abrir pasta dos dados</button><a id="exportBackupBtn" class="ghost-btn link-btn" href="/api/backup/export">Exportar backup</a><button id="importBackupBtn" type="button" class="danger-btn">Restaurar backup</button><input id="backupFile" type="file" accept="application/json,.json" class="hidden" /></div></div></article>
+        <article class="panel info-panel"><h2>Atualizar não apaga seus lançamentos</h2><p>O programa pode ser substituído por uma versão nova, mas estoque, vendas, caixa, cardápio e configurações ficam em <strong>%APPDATA%\GestaoDelivery</strong>. O executável e os dados são separados.</p></article>
+      </div>
+    </section>
+  </main>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
