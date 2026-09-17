@@ -31,3 +31,12 @@ git push origin v1.0.1
 ```
 
 O workflow usa a tag como versão embutida no EXE e publica `GestaoDelivery.exe` em um GitHub Release. Configure o proprietário e o repositório dentro do próprio app em **Configurações**.
+
+## Novidades da v1.0.1
+
+- Botão **Editar** em cada lanche do cardápio.
+- Edição de nome, preço e ficha técnica do lanche.
+- Botão **Duplicar** para criar variações de um lanche rapidamente.
+- Botão **Ativar/Desativar** sem apagar o cadastro.
+- Botão **Editar** no estoque para alterar nome, quantidade, unidade, estoque mínimo e custo.
+- Os IDs dos cadastros são preservados durante a edição, portanto fichas técnicas continuam vinculadas corretamente.

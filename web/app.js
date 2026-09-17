@@ -10,6 +10,8 @@ let info = null;
 let recipeDraft = [];
 let extraDraft = [];
 let updateAssetUrl = '';
+let editingProductId = '';
+let editingStockId = '';
 
 const pageMeta = {
   dashboard:['Visão geral','Acompanhe caixa, estoque e lucro do seu delivery.'],
@@ -113,7 +115,7 @@ function salePreview(){
 function updateSalePreview(){ const x=salePreview(); $('#previewRevenue').textContent=money(x.revenue); $('#previewCogs').textContent=money(x.cogs); $('#previewFee').textContent=money(x.fee); $('#previewResult').textContent=money(x.result); $('#previewResult').className=x.result>=0?'positive':'negative'; }
 
 function renderProducts(){
-  $('#productCards').innerHTML=state.products.length?state.products.map(p=>{const cost=productCost(p),gross=Number(p.price)-cost,margin=Number(p.price)?gross/Number(p.price)*100:0;return `<article class="product-card"><div class="product-title-row"><div><h3>${escapeHtml(p.name)}</h3><div class="price">${money(p.price)}</div></div><span class="status-chip">${p.active===false?'Inativo':'Ativo'}</span></div><div class="product-stats"><div><small>Custo estimado</small><strong>${money(cost)}</strong></div><div><small>Lucro bruto</small><strong class="${gross>=0?'positive':'negative'}">${money(gross)}</strong></div><div><small>Margem bruta</small><strong>${margin.toFixed(1)}%</strong></div><div><small>Ingredientes</small><strong>${(p.recipe||[]).length}</strong></div></div></article>`}).join(''):'<article class="panel">Nenhum lanche cadastrado.</article>';
+  $('#productCards').innerHTML=state.products.length?state.products.map(p=>{const cost=productCost(p),gross=Number(p.price)-cost,margin=Number(p.price)?gross/Number(p.price)*100:0;return `<article class="product-card ${p.active===false?'is-inactive':''}"><div class="product-title-row"><div><h3>${escapeHtml(p.name)}</h3><div class="price">${money(p.price)}</div></div><span class="status-chip">${p.active===false?'Inativo':'Ativo'}</span></div><div class="product-stats"><div><small>Custo estimado</small><strong>${money(cost)}</strong></div><div><small>Lucro bruto</small><strong class="${gross>=0?'positive':'negative'}">${money(gross)}</strong></div><div><small>Margem bruta</small><strong>${margin.toFixed(1)}%</strong></div><div><small>Ingredientes</small><strong>${(p.recipe||[]).length}</strong></div></div><div class="product-actions"><button type="button" class="primary-btn compact-btn" data-product-edit="${p.id}">Editar</button><button type="button" class="ghost-btn compact-btn" data-product-duplicate="${p.id}">Duplicar</button><button type="button" class="ghost-btn compact-btn" data-product-toggle="${p.id}">${p.active===false?'Ativar':'Desativar'}</button></div></article>`}).join(''):'<article class="panel">Nenhum lanche cadastrado.</article>';
   renderRecipeDraft();
 }
 function renderRecipeDraft(){
@@ -122,7 +124,7 @@ function renderRecipeDraft(){
 
 function renderStock(){
   $('#restockItem').innerHTML=stockOptions($('#restockItem').value);
-  $('#stockTable').innerHTML=state.stock.length?state.stock.map(i=>{const low=Number(i.qty)<=Number(i.min);return `<tr><td><strong>${escapeHtml(i.name)}</strong></td><td>${num(i.qty)} ${escapeHtml(i.unit)}</td><td><input class="stock-min-input" data-stock-min="${i.id}" type="number" min="0" step="0.001" value="${i.min}"/></td><td>${money(i.cost)}</td><td>${money(Number(i.qty)*Number(i.cost))}</td><td class="${low?'warning':'positive'}">${low?'⚠ Estoque baixo':'OK'}</td><td><button type="button" class="ghost-btn" data-stock-adjust="${i.id}" data-delta="-1">-1</button> <button type="button" class="ghost-btn" data-stock-adjust="${i.id}" data-delta="1">+1</button> <button type="button" class="ghost-btn" data-stock-set="${i.id}">Definir</button></td></tr>`}).join(''):emptyRow(7,'Nenhum ingrediente cadastrado.');
+  $('#stockTable').innerHTML=state.stock.length?state.stock.map(i=>{const low=Number(i.qty)<=Number(i.min);return `<tr><td><strong>${escapeHtml(i.name)}</strong></td><td>${num(i.qty)} ${escapeHtml(i.unit)}</td><td><input class="stock-min-input" data-stock-min="${i.id}" type="number" min="0" step="0.001" value="${i.min}"/></td><td>${money(i.cost)}</td><td>${money(Number(i.qty)*Number(i.cost))}</td><td class="${low?'warning':'positive'}">${low?'⚠ Estoque baixo':'OK'}</td><td><div class="table-actions"><button type="button" class="ghost-btn compact-btn" data-stock-edit="${i.id}">Editar</button><button type="button" class="ghost-btn compact-btn" data-stock-adjust="${i.id}" data-delta="-1">-1</button><button type="button" class="ghost-btn compact-btn" data-stock-adjust="${i.id}" data-delta="1">+1</button><button type="button" class="ghost-btn compact-btn" data-stock-set="${i.id}">Definir qtd.</button></div></td></tr>`}).join(''):emptyRow(7,'Nenhum ingrediente cadastrado.');
 }
 
 function renderCash(){
@@ -133,6 +135,56 @@ function renderCash(){
 function renderSettings(){
   $('#brandName').textContent=state.settings?.businessName||'Gestão Delivery'; $('#businessName').value=state.settings?.businessName||''; $('#githubOwner').value=state.settings?.githubOwner||''; $('#githubRepo').value=state.settings?.githubRepo||'';
 }
+
+function resetProductForm(){
+  editingProductId='';
+  $('#productForm').reset();
+  recipeDraft=state?.stock?.length?[{stockId:state.stock[0].id,qty:1}]:[];
+  $('#productFormTitle').textContent='Novo lanche';
+  $('#productFormSubtitle').textContent='Monte a ficha técnica para o sistema calcular custo e baixa de estoque.';
+  $('#productSubmitBtn').textContent='Salvar lanche';
+  $('#cancelProductEditBtn').classList.add('hidden');
+  $('#productEditBadge').classList.add('hidden');
+  renderRecipeDraft();
+}
+function startProductEdit(id){
+  const p=productById(id); if(!p)return;
+  editingProductId=p.id;
+  $('#productName').value=p.name;
+  $('#productPrice').value=Number(p.price||0);
+  recipeDraft=(p.recipe||[]).map(r=>({stockId:r.stockId,qty:Number(r.qty||0)}));
+  $('#productFormTitle').textContent='Editar lanche';
+  $('#productFormSubtitle').textContent='Altere nome, preço ou ingredientes. As próximas vendas usarão esta ficha técnica.';
+  $('#productSubmitBtn').textContent='Salvar alterações';
+  $('#cancelProductEditBtn').classList.remove('hidden');
+  $('#productEditBadge').classList.remove('hidden');
+  renderRecipeDraft();
+  $('#productForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
+function resetStockForm(){
+  editingStockId='';
+  $('#stockForm').reset();
+  $('#stockFormTitle').textContent='Novo ingrediente';
+  $('#stockFormSubtitle').textContent='Defina quantidade, custo e estoque mínimo.';
+  $('#stockSubmitBtn').textContent='Cadastrar ingrediente';
+  $('#cancelStockEditBtn').classList.add('hidden');
+  $('#stockEditBadge').classList.add('hidden');
+}
+function startStockEdit(id){
+  const i=stockById(id); if(!i)return;
+  editingStockId=i.id;
+  $('#stockName').value=i.name;
+  $('#stockQty').value=Number(i.qty||0);
+  $('#stockUnit').value=i.unit||'un';
+  $('#stockMin').value=Number(i.min||0);
+  $('#stockCost').value=Number(i.cost||0);
+  $('#stockFormTitle').textContent='Editar ingrediente';
+  $('#stockFormSubtitle').textContent='Altere nome, quantidade, unidade, estoque mínimo ou custo.';
+  $('#stockSubmitBtn').textContent='Salvar alterações';
+  $('#cancelStockEditBtn').classList.remove('hidden');
+  $('#stockEditBadge').classList.remove('hidden');
+  $('#stockForm').scrollIntoView({behavior:'smooth',block:'start'});
+}
 function renderAll(){ renderDashboard(); renderSales(); renderProducts(); renderStock(); renderCash(); renderSettings(); }
 async function refresh(){ state=await api('/api/data'); renderAll(); }
 async function runAction(fn,success){ try{saveStatus('Salvando...'); state=await fn(); renderAll(); saveStatus('Dados salvos'); if(success)toast(success);}catch(e){saveStatus('Erro ao salvar');toast(e.message||'Ocorreu um erro.',true);} }
@@ -140,13 +192,15 @@ async function runAction(fn,success){ try{saveStatus('Salvando...'); state=await
 $$('.nav-btn').forEach(b=>b.addEventListener('click',()=>goTab(b.dataset.tab)));
 $$('[data-go]').forEach(b=>b.addEventListener('click',()=>goTab(b.dataset.go)));
 
-$('#stockForm').addEventListener('submit',e=>{e.preventDefault();runAction(()=>api('/api/stock/add',{method:'POST',body:{name:$('#stockName').value,qty:Number($('#stockQty').value),unit:$('#stockUnit').value,min:Number($('#stockMin').value),cost:Number($('#stockCost').value)}}),'Ingrediente cadastrado.').then(()=>e.target.reset());});
+$('#stockForm').addEventListener('submit',async e=>{e.preventDefault();const body={name:$('#stockName').value,qty:Number($('#stockQty').value),unit:$('#stockUnit').value,min:Number($('#stockMin').value),cost:Number($('#stockCost').value)};if(editingStockId){body.id=editingStockId;await runAction(()=>api('/api/stock/update',{method:'POST',body}), 'Ingrediente atualizado.');resetStockForm();}else{await runAction(()=>api('/api/stock/add',{method:'POST',body}), 'Ingrediente cadastrado.');resetStockForm();}});
 $('#restockForm').addEventListener('submit',e=>{e.preventDefault();runAction(()=>api('/api/stock/restock',{method:'POST',body:{stockId:$('#restockItem').value,qty:Number($('#restockQty').value),total:Number($('#restockTotal').value)}}),'Compra registrada e estoque atualizado.').then(()=>e.target.reset());});
-$('#productForm').addEventListener('submit',e=>{e.preventDefault();if(!recipeDraft.length)return toast('Adicione pelo menos um ingrediente.',true);runAction(()=>api('/api/product/add',{method:'POST',body:{name:$('#productName').value,price:Number($('#productPrice').value),recipe:recipeDraft}}),'Lanche cadastrado.').then(()=>{e.target.reset();recipeDraft=[];renderRecipeDraft();});});
+$('#productForm').addEventListener('submit',async e=>{e.preventDefault();if(!recipeDraft.length)return toast('Adicione pelo menos um ingrediente.',true);const current=editingProductId?productById(editingProductId):null;const body={name:$('#productName').value,price:Number($('#productPrice').value),recipe:recipeDraft.map(r=>({...r})),active:current?current.active!==false:true};if(editingProductId){body.id=editingProductId;await runAction(()=>api('/api/product/update',{method:'POST',body}),'Lanche atualizado.');resetProductForm();}else{await runAction(()=>api('/api/product/add',{method:'POST',body}),'Lanche cadastrado.');resetProductForm();}});
 $('#cashForm').addEventListener('submit',e=>{e.preventDefault();runAction(()=>api('/api/cash/add',{method:'POST',body:{type:$('#cashType').value,category:$('#cashCategory').value,description:$('#cashDescription').value,value:Number($('#cashValue').value)}}),'Lançamento registrado.').then(()=>e.target.reset());});
 $('#settingsForm').addEventListener('submit',e=>{e.preventDefault();runAction(()=>api('/api/settings',{method:'POST',body:{businessName:$('#businessName').value,githubOwner:$('#githubOwner').value,githubRepo:$('#githubRepo').value}}),'Configurações salvas.');});
 
 $('#addRecipeBtn').addEventListener('click',()=>{if(!state.stock.length)return toast('Cadastre um ingrediente primeiro.',true);recipeDraft.push({stockId:state.stock[0].id,qty:1});renderRecipeDraft();});
+$('#cancelProductEditBtn').addEventListener('click',resetProductForm);
+$('#cancelStockEditBtn').addEventListener('click',resetStockForm);
 $('#addExtraBtn').addEventListener('click',()=>{if(!state.stock.length)return toast('Cadastre um ingrediente primeiro.',true);extraDraft.push({stockId:state.stock[0].id,qty:1,price:0});renderExtras();});
 $('#saleProduct').addEventListener('change',()=>{extraDraft=[];renderSaleRecipe();renderExtras();});
 $('#saleQty').addEventListener('input',updateSalePreview); $('#saleFee').addEventListener('input',updateSalePreview); $('#removeIngredients').addEventListener('change',updateSalePreview);
@@ -167,6 +221,10 @@ document.addEventListener('click',async e=>{
   const er=e.target.closest('[data-extra-remove]');if(er){extraDraft.splice(Number(er.dataset.extraRemove),1);renderExtras();}
   const adj=e.target.closest('[data-stock-adjust]');if(adj){const item=stockById(adj.dataset.stockAdjust);if(item)await runAction(()=>api('/api/stock/update',{method:'POST',body:{ID:item.id,Qty:Math.max(0,Number(item.qty)+Number(adj.dataset.delta))}}),'Estoque ajustado.');}
   const set=e.target.closest('[data-stock-set]');if(set){const item=stockById(set.dataset.stockSet);if(!item)return;const value=prompt(`Quantidade atual de ${item.name} (${item.unit}):`,String(item.qty));if(value===null)return;const n=Number(String(value).replace(',','.'));if(!Number.isFinite(n)||n<0)return toast('Quantidade inválida.',true);await runAction(()=>api('/api/stock/update',{method:'POST',body:{ID:item.id,Qty:n}}),'Quantidade atualizada.');}
+  const se=e.target.closest('[data-stock-edit]');if(se){startStockEdit(se.dataset.stockEdit);}
+  const pe=e.target.closest('[data-product-edit]');if(pe){startProductEdit(pe.dataset.productEdit);}
+  const pd=e.target.closest('[data-product-duplicate]');if(pd){const p=productById(pd.dataset.productDuplicate);if(p){editingProductId='';$('#productName').value=p.name+' (cópia)';$('#productPrice').value=Number(p.price||0);recipeDraft=(p.recipe||[]).map(r=>({stockId:r.stockId,qty:Number(r.qty||0)}));$('#productFormTitle').textContent='Duplicar lanche';$('#productFormSubtitle').textContent='Ajuste o que quiser e salve como um novo lanche.';$('#productSubmitBtn').textContent='Salvar cópia';$('#cancelProductEditBtn').classList.remove('hidden');$('#productEditBadge').classList.add('hidden');renderRecipeDraft();$('#productForm').scrollIntoView({behavior:'smooth',block:'start'});}}
+  const pt=e.target.closest('[data-product-toggle]');if(pt){const p=productById(pt.dataset.productToggle);if(p)await runAction(()=>api('/api/product/update',{method:'POST',body:{id:p.id,name:p.name,price:Number(p.price||0),recipe:(p.recipe||[]),active:p.active===false}}),p.active===false?'Lanche ativado.':'Lanche desativado.');}
 });
 
 $('#checkUpdateBtn').addEventListener('click',async()=>{try{$('#updateMessage').textContent='Verificando...';const r=await api('/api/update/check');updateAssetUrl=r.assetUrl||'';if(!r.newer){$('#updateMessage').textContent=`Você já está na versão mais recente (${r.current}).`;$('#installUpdateBtn').classList.add('hidden');return;}if(!updateAssetUrl){$('#updateMessage').textContent=`Versão ${r.latest} encontrada, mas o Release não contém GestaoDelivery.exe.`;$('#installUpdateBtn').classList.add('hidden');return;}$('#updateMessage').textContent=`Nova versão ${r.latest} disponível. Você usa ${r.current}.`;$('#installUpdateBtn').classList.remove('hidden');}catch(e){toast(e.message,true);$('#updateMessage').textContent=e.message;}});

@@ -93,11 +93,11 @@
 
     <section class="page" id="page-products">
       <article class="panel">
-        <div class="panel-head"><div><h2>Novo lanche</h2><p>Monte a ficha técnica para o sistema calcular custo e baixa de estoque.</p></div></div>
+        <div class="panel-head"><div><h2 id="productFormTitle">Novo lanche</h2><p id="productFormSubtitle">Monte a ficha técnica para o sistema calcular custo e baixa de estoque.</p></div><span id="productEditBadge" class="badge hidden">Modo edição</span></div>
         <form id="productForm">
           <div class="form-grid"><label>Nome do lanche<input id="productName" required placeholder="Ex.: Dogão Paulista" /></label><label>Preço de venda (R$)<input id="productPrice" required type="number" min="0" step="0.01" placeholder="28,00" /></label></div>
           <div class="subsection"><div class="sub-head inline"><div><h3>Ingredientes</h3><small>Quantidade usada para 1 lanche.</small></div><button type="button" id="addRecipeBtn" class="ghost-btn">+ Ingrediente</button></div><div id="recipeList" class="recipe-list"></div></div>
-          <button class="primary-btn">Salvar lanche</button>
+          <div class="button-row"><button id="productSubmitBtn" class="primary-btn">Salvar lanche</button><button id="cancelProductEditBtn" type="button" class="ghost-btn hidden">Cancelar edição</button></div>
         </form>
       </article>
       <div id="productCards" class="card-grid"></div>
@@ -105,7 +105,7 @@
 
     <section class="page" id="page-stock">
       <div class="two-col">
-        <article class="panel"><div class="panel-head"><div><h2>Novo ingrediente</h2><p>Defina quantidade, custo e estoque mínimo.</p></div></div><form id="stockForm"><div class="form-grid"><label>Ingrediente<input id="stockName" required /></label><label>Quantidade atual<input id="stockQty" required type="number" min="0" step="0.001" /></label><label>Unidade<select id="stockUnit"><option>un</option><option>kg</option><option>g</option><option>litro</option><option>ml</option><option>pacote</option><option>caixa</option></select></label><label>Estoque mínimo<input id="stockMin" required type="number" min="0" step="0.001" /></label><label>Custo por unidade (R$)<input id="stockCost" required type="number" min="0" step="0.01" /></label></div><button class="primary-btn">Cadastrar ingrediente</button></form></article>
+        <article class="panel"><div class="panel-head"><div><h2 id="stockFormTitle">Novo ingrediente</h2><p id="stockFormSubtitle">Defina quantidade, custo e estoque mínimo.</p></div><span id="stockEditBadge" class="badge hidden">Modo edição</span></div><form id="stockForm"><div class="form-grid"><label>Ingrediente<input id="stockName" required /></label><label>Quantidade atual<input id="stockQty" required type="number" min="0" step="0.001" /></label><label>Unidade<select id="stockUnit"><option>un</option><option>kg</option><option>g</option><option>litro</option><option>ml</option><option>pacote</option><option>caixa</option></select></label><label>Estoque mínimo<input id="stockMin" required type="number" min="0" step="0.001" /></label><label>Custo por unidade (R$)<input id="stockCost" required type="number" min="0" step="0.01" /></label></div><div class="button-row"><button id="stockSubmitBtn" class="primary-btn">Cadastrar ingrediente</button><button id="cancelStockEditBtn" type="button" class="ghost-btn hidden">Cancelar edição</button></div></form></article>
         <article class="panel"><div class="panel-head"><div><h2>Repor estoque</h2><p>A compra aumenta o estoque e entra no fluxo de caixa.</p></div></div><form id="restockForm"><div class="form-grid single"><label>Ingrediente<select id="restockItem"></select></label><label>Quantidade comprada<input id="restockQty" required type="number" min="0.001" step="0.001" /></label><label>Valor total pago (R$)<input id="restockTotal" required type="number" min="0" step="0.01" /></label></div><button class="primary-btn">Registrar compra</button></form></article>
       </div>
       <article class="panel"><div class="panel-head"><div><h2>Estoque atual</h2><p>Edite o estoque mínimo direto na tabela. O alerta usa esse valor.</p></div></div><div class="table-wrap"><table><thead><tr><th>Ingrediente</th><th>Atual</th><th>Mínimo</th><th>Custo un.</th><th>Valor</th><th>Status</th><th>Ajuste</th></tr></thead><tbody id="stockTable"></tbody></table></div></article>

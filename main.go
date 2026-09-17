@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-var AppVersion = "1.0.0"
+var AppVersion = "1.0.1"
 
 const listenAddr = "127.0.0.1:34567"
 
@@ -351,8 +351,12 @@ func registerAPI(mux *http.ServeMux, store *Store) {
 	})
 	mux.HandleFunc("/api/stock/update", func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
-			ID, Name, Unit string
-			Qty, Min, Cost *float64
+			ID   string   `json:"id"`
+			Name string   `json:"name"`
+			Unit string   `json:"unit"`
+			Qty  *float64 `json:"qty"`
+			Min  *float64 `json:"min"`
+			Cost *float64 `json:"cost"`
 		}
 		if err := readJSON(r, &in); err != nil {
 			apiErr(w, err)
@@ -464,13 +468,24 @@ func registerAPI(mux *http.ServeMux, store *Store) {
 			if p == nil {
 				return errors.New("Lanche não encontrado.")
 			}
-			if strings.TrimSpace(in.Name) != "" {
-				p.Name = strings.TrimSpace(in.Name)
+			name := strings.TrimSpace(in.Name)
+			if name == "" {
+				return errors.New("Informe o nome do lanche.")
 			}
+			p.Name = name
 			p.Price = cleanN(in.Price)
 			p.Active = in.Active
 			if in.Recipe != nil {
-				p.Recipe = in.Recipe
+				var recipe []RecipeItem
+				for _, x := range in.Recipe {
+					if x.Qty > 0 && findStock(d, x.StockID) != nil {
+						recipe = append(recipe, RecipeItem{StockID: x.StockID, Qty: x.Qty})
+					}
+				}
+				if len(recipe) == 0 {
+					return errors.New("Adicione pelo menos um ingrediente.")
+				}
+				p.Recipe = recipe
 			}
 			return nil
 		})
